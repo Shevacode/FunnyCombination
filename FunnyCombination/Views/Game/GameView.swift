@@ -2,10 +2,15 @@ import SwiftUI
 
 struct GameView: View {
     @StateObject private var vm = GameViewModel()
+
+    @Environment(\.dismiss) private var dismiss
+
     @State private var showGameOver = false
     @State private var showLoseMessage = false
-
     @State private var pressedItem: GameItem? = nil
+
+    @State private var showExitToMenuAlert = false
+    @State private var showRestartAlert = false
 
     var body: some View {
         ZStack {
@@ -16,9 +21,7 @@ struct GameView: View {
                 displayCard
                 statusRow
                 inputTrail
-
                 keypadTwoRows
-
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 16)
@@ -27,6 +30,44 @@ struct GameView: View {
         .navigationTitle("Гра")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
+
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    showExitToMenuAlert = true
+                } label: {
+                    Label("Меню", systemImage: "chevron.left")
+                }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showRestartAlert = true
+                } label: {
+                    Image(systemName: "arrow.counterclockwise")
+                }
+                .accessibilityLabel("Почати заново")
+            }
+        }
+
+        .alert("Вийти в меню?", isPresented: $showExitToMenuAlert) {
+            Button("Скасувати", role: .cancel) {}
+            Button("Вийти", role: .destructive) {
+                dismiss()
+            }
+        } message: {
+            Text("Поточна гра буде втрачена.")
+        }
+
+        .alert("Почати заново?", isPresented: $showRestartAlert) {
+            Button("Скасувати", role: .cancel) {}
+            Button("Заново", role: .destructive) {
+                vm.start()
+            }
+        } message: {
+            Text("Поточний прогрес буде скинуто.")
+        }
+
         .onAppear { vm.start() }
         .onChange(of: vm.state) { _, newValue in
             if newValue == .gameOver {
@@ -42,7 +83,6 @@ struct GameView: View {
         }
     }
 
-   
 
     private var background: some View {
         LinearGradient(
@@ -53,7 +93,6 @@ struct GameView: View {
         .ignoresSafeArea()
     }
 
-   
 
     private var header: some View {
         HStack {
@@ -80,7 +119,6 @@ struct GameView: View {
         .padding(.vertical, 4)
     }
 
-   
 
     private var displayCard: some View {
         let token = displayedToken
@@ -139,13 +177,14 @@ struct GameView: View {
         }
     }
 
-    
 
     private var statusRow: some View {
         HStack {
             Text(vm.statusText)
                 .foregroundStyle(.secondary)
+
             Spacer()
+
             Text(vm.state == .playerInput ? "INPUT" : "SHOW")
                 .font(.caption2)
                 .bold()
@@ -157,7 +196,6 @@ struct GameView: View {
         .padding(.top, 2)
     }
 
-    
 
     private var inputTrail: some View {
         Group {
@@ -191,12 +229,11 @@ struct GameView: View {
         }
     }
 
-    
 
     private var keypadTwoRows: some View {
         let items = GameItem.allCases
         let topRow = Array(items.prefix(2))
-        let bottomRow = Array(items.dropFirst(2))
+        let bottomRow = Array(items.dropFirst(2)) // 3
 
         return VStack(spacing: 12) {
             HStack(spacing: 12) {
@@ -221,7 +258,6 @@ struct GameView: View {
             pressedItem = item
             vm.tap(item)
 
-            
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
                 if pressedItem == item { pressedItem = nil }
             }
@@ -242,7 +278,6 @@ struct GameView: View {
                 Text(item.rawValue)
                     .font(.system(size: 34))
             }
-            
             .frame(width: 108, height: 64)
             .scaleEffect(pressedItem == item ? 0.96 : 1.0)
             .animation(.easeOut(duration: 0.12), value: pressedItem == item)
@@ -252,7 +287,6 @@ struct GameView: View {
         .opacity(vm.state == .playerInput && !showLoseMessage ? 1.0 : 0.55)
     }
 
-   
 
     private var displayedToken: GameViewModel.DisplayToken {
         vm.state == .showingSequence ? vm.shownToken : vm.playerToken
@@ -266,7 +300,6 @@ struct GameView: View {
         }
     }
 }
-
 
 
 private struct TrailPill: View {
